@@ -45,12 +45,12 @@ class Camera:
 if __name__ == "__main__":
     # Initialize the Camera and Detector
     camera = Camera()
-    detect = Detector(brightness_threshold=125)
+    detector = Detector(brightness_threshold=125)
 
     try:
         while True:
             frame = camera.read_frame()
-            debounced_cards = detect.cards(frame)
+            debounced_cards = detector.cards(frame)
 
             # Draw each debounced card and display corner in the middle of each card
             for card_id, card_data in debounced_cards.items():
@@ -60,13 +60,23 @@ if __name__ == "__main__":
                 
                 # Draw contour on the main frame
                 cv2.drawContours(frame, [contour], -1, (0, 0, 255), 2)
+                updated_card_image = detector.display_corner_in_center(card_data)
 
+                # Display or save the result
+                cv2.imshow("Card with Centered Outlined Corner", updated_card_image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
                 # Overlay the corner in the middle of the card
-                if corner is not None:
-                    corner_h, corner_w = corner.shape[:2]
-                    x_offset = center[0] - corner_w // 2
-                    y_offset = center[1] - corner_h // 2
-                    frame[y_offset:y_offset+corner_h, x_offset:x_offset+corner_w] = corner
+                # if corner is not None:
+                #     corner_h, corner_w = corner.shape[:2]
+                #     x_offset = center[0] - corner_w // 2
+                #     y_offset = center[1] - corner_h // 2
+                #     # frame[y_offset:y_offset+corner_h, x_offset:x_offset+corner_w] = corner
+                #     if len(corner.shape) == 2:  # Check if `corner` is grayscale
+                #       corner = cv2.cvtColor(corner, cv2.COLOR_GRAY2BGR)
+
+                #     # Now `corner` can be assigned to the color `frame` without shape mismatch
+                #     frame[y_offset:y_offset+corner_h, x_offset:x_offset+corner_w] = corner
 
                 # Display ID and coordinates
                 cv2.putText(frame, f"ID#{card_id} ({center[0]}, {center[1]})", (center[0], center[1] - 10),

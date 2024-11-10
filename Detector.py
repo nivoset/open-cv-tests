@@ -11,6 +11,7 @@ class Detector:
         self.corner_threshold = brightness_threshold 
         self.debounce_cards = {}  # Stores card locations and their timeout
         self.next_id = 0  # Unique ID counter for each detected card
+        self.corner_approx_accuracy = 0.02
 
     def _is_card_shape(self, contour):
         """Check if contour is rectangular and has a mostly white/light grey fill."""
@@ -57,31 +58,69 @@ class Detector:
 
         return card
 
+
     def _extract_corner(self, card_image):
-        """Extract the corner from the top-left of the card image and remove background based on brightness."""
+        """Find the perimeter and approximate corner points of the card."""
+        # Convert to grayscale and apply Canny edge detection
+        gray = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 100, 200)
+        
+        # Find contours
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            # Filter by area to detect large shapes, like a card
+            area = cv2.contourArea(contour)
+            if area > self.area_threshold:
+                # Approximate contour to reduce points for corner approximation
+                epsilon = self.corner_approx_accuracy * cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, epsilon, True)
+                
+                # If the approximation has 4 points, it’s likely the card's corners
+                if len(approx) == 4:
+                    # Extract the corner points
+                    corners = approx.reshape(4, 2)  # Shape as (4,2) array for easy access
+                    return corners
+
+        return None  # If no card-like contour is found
+    def extract_corner_with_outline(self, card_image):
+        """Extract the top-left corner of the card and add a blue outline."""
+        # Extract the top-left corner as done previously
         gray_card = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
+        corner_region = gray_card[5:60, 5:40]
+        
+        # Convert corner to color (BGR) to allow color outline
+        corner_with_outline = cv2.cvtColor(corner_region, cv2.COLOR_GRAY2BGR)
+        
+        # Add a blue outline around the corner
+        outline_color = (255, 0, 0)  # Blue in BGR
+        thickness = 2  # Outline thickness
+        cv2.rectangle(corner_with_outline, (0, 0), (corner_with_outline.shape[1] - 1, corner_with_outline.shape[0] - 1), outline_color, thickness)
+        
+        return corner_with_outline
 
-        # Define initial region for corner extraction
-        initial_corner_region = gray_card[5:60, 5:40]
-        mask = np.zeros_like(initial_corner_region, dtype=np.uint8)
+    def display_corner_in_center(self, debounced_card_data):
+        """
+        Display the outlined top-left corner in the center of the card
+        based on the debounced card data.
+        """
+        # Extract the card image from the debounced data
+        card_image = debounced_card_data.get("image")
+        if card_image is None:
+            raise ValueError("Debounced card data must include an 'image' key with the card image.")
 
-        # Identify the boundaries by checking brightness
-        rows, cols = initial_corner_region.shape
-        for y in range(rows):
-            for x in range(cols):
-                if initial_corner_region[y, x] > self.corner_threshold:
-                    mask[y, x] = 255  # Mark as part of the corner (white)
-
-        # Find the bounding box of the area above the threshold
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            x, y, w, h = cv2.boundingRect(contours[0])
-            cropped_corner = card_image[y:y+h+5, x:x+w+5]  # Add padding for a clear view of rank/suit
-        else:
-            cropped_corner = initial_corner_region  # Default if no contour found
-
-        return cropped_corner
-
+        # Extract the outlined corner
+        outlined_corner = self.extract_corner_with_outline(card_image)
+        
+        # Determine center position to place the corner image
+        card_h, card_w = card_image.shape[:2]
+        corner_h, corner_w = outlined_corner.shape[:2]
+        y_offset = (card_h - corner_h) // 2
+        x_offset = (card_w - corner_w) // 2
+        
+        # Place the outlined corner image onto the card's center
+        card_image[y_offset:y_offset + corner_h, x_offset:x_offset + corner_w] = outlined_corner
+        return card_image
     def cards(self, frame):
         """Detect, debounce, and process card locations in the provided frame."""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
