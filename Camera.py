@@ -54,18 +54,20 @@ if __name__ == "__main__":
 
             # Draw each debounced card and display corner in the middle of each card
             for card_id, card_data in debounced_cards.items():
-                contour = card_data['contour']
-                center = card_data['center']
-                corner = card_data['corner']
+                # print(card_data.extract_corner_with_outline())
+                card_data.overlay_corner_on_frame(frame)
+                # contour = card_data['contour']
+                # center = card_data['center']
+                # corner = card_data['corner']
                 
-                # Draw contour on the main frame
-                cv2.drawContours(frame, [contour], -1, (0, 0, 255), 2)
-                updated_card_image = detector.display_corner_in_center(card_data)
+                # # Draw contour on the main frame
+                # cv2.drawContours(frame, [contour], -1, (0, 0, 255), 2)
+                # updated_card_image = detector.display_corner_in_center(card_data)
 
-                # Display or save the result
-                cv2.imshow("Card with Centered Outlined Corner", updated_card_image)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+                # # Display or save the result
+                # cv2.imshow("Card with Centered Outlined Corner", updated_card_image)
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
                 # Overlay the corner in the middle of the card
                 # if corner is not None:
                 #     corner_h, corner_w = corner.shape[:2]
@@ -79,8 +81,8 @@ if __name__ == "__main__":
                 #     frame[y_offset:y_offset+corner_h, x_offset:x_offset+corner_w] = corner
 
                 # Display ID and coordinates
-                cv2.putText(frame, f"ID#{card_id} ({center[0]}, {center[1]})", (center[0], center[1] - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                # cv2.putText(frame, f"ID#{card_id} ({center[0]}, {center[1]})", (center[0], center[1] - 10),
+                #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
             # Display the frame with detected cards and corners
             cv2.imshow("Debounced Cards", frame)

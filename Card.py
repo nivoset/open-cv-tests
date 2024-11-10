@@ -16,7 +16,30 @@ class Card:
 
         if self.card_image is None or self.frame is None or self.corners is None:
             raise ValueError("Card data must include 'image', 'frame', and 'corners' keys.")
+    def overlay_corner_on_frame(self, frame):
+        """
+        Draws the outlined corner from `extract_corner_with_outline()` in the center of the card area on the main frame.
+        """
+        # Extract the outlined corner
+        outlined_corner = self.extract_corner_with_outline()
+        
+        # Get dimensions of the outlined corner
+        corner_h, corner_w = outlined_corner.shape[:2]
 
+        # Calculate center position of the card in the main frame using its corner coordinates
+        card_center_x = int((self.corners[0][0] + self.corners[2][0]) / 2)
+        card_center_y = int((self.corners[0][1] + self.corners[2][1]) / 2)
+
+        # Calculate the top-left position to place the outlined corner in the center of the card
+        y_offset = card_center_y - corner_h // 2
+        x_offset = card_center_x - corner_w // 2
+
+        # Ensure the outlined corner fits within the frame boundaries
+        if 0 <= y_offset < frame.shape[0] - corner_h and 0 <= x_offset < frame.shape[1] - corner_w:
+            # Overlay the outlined corner onto the frame
+            frame[y_offset:y_offset + corner_h, x_offset:x_offset + corner_w] = outlined_corner
+        
+        return frame
     def extract_corner_with_outline(self):
         """Extract the top-left corner of the card with a blue outline."""
         gray_card = cv2.cvtColor(self.card_image, cv2.COLOR_BGR2GRAY)
