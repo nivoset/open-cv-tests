@@ -1,3 +1,7 @@
 .venv/
 __pycache__/
 EXAMPLE/
+
+playing-cards/train
+playing-cards/test
+playing-cards/valid
