@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 class Detector:
-    def __init__(self, area_threshold=500, brightness_threshold=150):
+    def __init__(self, area_threshold=500, brightness_threshold=200, epsilon_factor=0.02, min_area=150, sort_method="left-to-right", debug = False):
         """
         Initializes the detector with area and brightness thresholds.
         - area_threshold: Minimum area to consider a contour as a card.
@@ -12,6 +12,10 @@ class Detector:
         """
         self.area_threshold = area_threshold
         self.brightness_threshold = brightness_threshold
+        self.epsilon_factor = epsilon_factor
+        self.min_area = min_area
+        self.sort_method = sort_method
+        self.debug = debug
 
     def find_card_corners(self, contour, epsilon_factor=0.02):
         """
@@ -69,41 +73,36 @@ class Detector:
 
         return cropped_image
 
-    def check_brightness(self, frame, contour) -> bool:
-        """Check if the average brightness of the area inside the contour meets the threshold."""
-        # Create a mask for the contour
-        mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-        # cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
+    def sort_contours(self, contours, method="left-to-right"):
+        """
+        Sort contours according to the method provided ('left-to-right', 'right-to-left',
+        'top-to-bottom', 'bottom-to-top'). Default is 'left-to-right'.
+        """
+        # Create a list of bounding boxes from contours
+        boundingBoxes = [cv2.boundingRect(c) for c in contours]
         
-        # Calculate the average brightness inside the mask
-        mean_val = cv2.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), mask=mask)[0]
-        # print("check brightness", mean_val)
-        return mean_val >= self.brightness_threshold
+        # Sort the bounding boxes, depending on the method
+        if method == "left-to-right":
+            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                key=lambda b: b[1][0]))
+        elif method == "right-to-left":
+            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                key=lambda b: b[1][0], reverse=True))
+        elif method == "top-to-bottom":
+            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                key=lambda b: b[1][1]))
+        elif method == "bottom-to-top":
+            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                key=lambda b: b[1][1], reverse=True))
 
-    def filter_contour(self, contour, min_height=200):
-    # Get the indices of the highest and lowest points vertically
-
-        # differences = np.diff(contour.squeeze(), axis=0)
-        # absolute_distances = np.abs(differences)
-        # print("absolute_distances", absolute_distances)
-        y_values = contour[:, 0, 1]
-
-        # Calculate the difference between the maximum and minimum Y value
-        max_diff_y = np.max(y_values) - np.min(y_values)
-
-        print("Largest difference in Y coordinate:", max_diff_y)
-
-        # Check if the difference between the maximum and minimum Y value is greater than the minimum height
-        return max_diff_y > min_height
-
-        
+        return contours
     def cards(self, frame):
         """
         Detect cards in the frame, returning a dictionary of Card objects.
         - frame: Input image.
         - Returns: Dictionary of Card objects detected.
         """
-        frame = self.filter_crosshairs(frame)
+        frame = self.filter_crosshairs(frame, self.brightness_threshold)
         blur = cv2.GaussianBlur(frame, (15, 15), 3)
         gray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -113,23 +112,11 @@ class Detector:
         _, thresholded = cv2.threshold(gray, 105, 255, cv2.THRESH_BINARY) 
         
         contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        filtered_contours = ([cnt for cnt in contours if cv2.contourArea(cnt) > 150])
+        filtered_contours = self.sort_contours([cnt for cnt in contours if cv2.contourArea(cnt) > self.min_area], self.sort_method)
         
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         mask = np.zeros_like(gray)
         cv2.drawContours(thresholded, filtered_contours, -1, 255, thickness=cv2.FILLED)
-        # union_contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        # # union_contours = cv2.bitwise_or(union_contours)
-            
-        # blank_image = np.zeros_like(frame)
-        # white_image = np.ones_like(frame)
-
-        # # Calculate the minimum height required for a contour to be considered large enough
-        # # Filter the contours based on their size relative to the image height
-        # min_height = 75
-        # print  ("min height", min_height)
-        # filtered_contours = [contour for contour in union_contours if self.filter_contour(contour, min_height)]
-        # Draw each contour on the blank image
             
 
         
@@ -144,67 +131,36 @@ class Detector:
         mask = cv2.inRange(blur_hsv, lower, upper)  
         mask = 255 - mask
         # output = cv2.bitwise_and(frame, frame, mask = mask)
-        
-        
-        plt.figure(figsize=(10, 5))
-        plt.subplot(7, 1, 2)
-        plt.title("Original Image")
-        plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        plt.axis("off")
 
-        # plt.subplot(1, 3, 2)
-        # plt.title("Binary Thresholded")
-        # plt.imshow(binary, cmap="gray")
-        # plt.axis("off")
+        extracted_images = [self.extract_card_image(frame, contour) for contour in filtered_contours]
+        # Number of subplots required: number of extracted images + 1 for the original
+        num_plots = len(extracted_images) + 1
 
-        # Iterate over each contour and display the isolated region
-        for i, contour in enumerate(filtered_contours):
-            try:
-                isolated_region = self.extract_card_image(frame, contour)
+        if self.debug:
+            print("Number of extracted images:", len(extracted_images))
+            # Create a figure to display the results
+            plt.figure(figsize=(15, num_plots * 3))  # Adjust the figure size based on the number of images
 
-                # Convert color space for display in matplotlib (from BGR to RGB)
-                isolated_region_rgb = cv2.cvtColor(isolated_region, cv2.COLOR_BGR2RGB)
+            # Show the original image first
+            plt.subplot(1, num_plots, 1)
+            plt.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            plt.title('Original Image')
+            plt.axis('off')
+            
+            # Show each extracted image in subsequent subplots
+            for i, image in enumerate(extracted_images):
+                plt.subplot(1, num_plots, i + 2)  # Position the image in the plot grid
+                plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                plt.title(f'Hand {i + 1}')
+                plt.axis('off')
 
-                # Display using matplotlib
-                plt.figure(figsize=(5, 5))  # Set the figure size as needed
-                plt.imshow(isolated_region_rgb)
-                plt.title(f'Hand {i+1}')
-                plt.axis('off')  # Turn off axis numbers and ticks
-                plt.show()
-            except Exception as e:
-                print(f"Error processing contour {i}: {e}")
-
-        
-        areas = [cv2.contourArea(contour) for contour in filtered_contours]
-
-        # Sort the contours by their areas in descending order
-        sorted_contours = sorted(zip(filtered_contours, areas), key=lambda x: x[1], reverse=True)
-
-        # Print the top 5 sizes of contour
-        for contour, area in sorted_contours[:6]:
-            print(f"Contour area: {area}")
-
-        # detected_cards = {}
-
-        # # Process each contour to detect cards
-        # for idx, contour in enumerate(contours):
-        #     if cv2.contourArea(contour) > self.area_threshold:
-        #         corners = self.find_card_corners(contour)
-        #         if corners is not None:
-        #             card_image = self.extract_card_image(frame, corners)
-        #             card_data = {
-        #                 "image": card_image,
-        #                 "frame": frame,
-        #                 "corners": corners
-        #             }
-        #             card_obj = Card(card_data)
-        #             detected_cards[idx] = card_obj
-
-        # return detected_cards
+            plt.tight_layout()
+            plt.show()
+        return extracted_images
 
 
-    def filter_crosshairs(self, image, brightness_threshold=175):
 
+    def filter_crosshairs(self, image, brightness_threshold):
         # Edge detection using Canny
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # Convert to grayscale for brightness analysis
         fixed = image.copy()
@@ -219,8 +175,9 @@ class Detector:
             row = gray[i, :]  # Extract the row
             average_brightness = np.mean(row)  # Calculate the average brightness of the row
             if average_brightness > brightness_threshold:
-                fixed[i, :] = fixed[i-1, :]
+                fixed[i, :] = fixed[max(0,i-1), :]
         # Get the number of columns in the image
+
         num_columns = gray.shape[1]
 
         # Analyze the brightness and replace columns as needed
@@ -228,6 +185,6 @@ class Detector:
             column = gray[:, j]  # Extract the column
             average_brightness = np.mean(column)  # Calculate the average brightness of the column
             if average_brightness > brightness_threshold:
-                fixed[:, j] = fixed[:, j-1] 
+                fixed[:, j] = fixed[:, max(0, j-1)] 
 
         return fixed
