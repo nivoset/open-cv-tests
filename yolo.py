@@ -58,18 +58,20 @@ def main():
   project = "./playing-cards"
   experiment = "playing-card-model"
   
-  batch_size = 32
+  batch_size = 8
   
   model.train(
+    dnn=True,
     data=data_yaml_file,
-    epochs=5, # 50?
+    epochs=50, # 50?
     project=project,
     name=experiment,
     batch=batch_size,
-    device='cpu', # todo can this be changed?
+    device=0, # todo can this be changed?
     patience=5,
     imgsz=640,
     verbose=True,
+    # weights_only=True,
     val=True)
   
   
