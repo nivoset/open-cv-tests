@@ -5,7 +5,7 @@ min_area: 150
 # Sorting methods, need to list
 sort_method: left-to-right
 # Confidence needed to report a card (TODO)
-confidence_threshold: 0.22
+confidence_threshold: 0.25
 # Display/log more details
 debug: false
 # pytorch device, cpu, cuda, mps if mac

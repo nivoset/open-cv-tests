@@ -1,14 +1,10 @@
 from ultralytics import YOLO
 import yaml
 
-# Path to the config file
-config_path = 'playing-cards/data.yaml'  # Adjust the path and model name as needed
-
 # Load the configuration
-with open(config_path) as f:
+with open('playing-cards/data.yaml') as f:
     config = yaml.safe_load(f)
 
-print(config)
 
 class Card:
     def __init__(self, settings):
@@ -36,20 +32,16 @@ class Card:
             class_id = int(box.cls[0])
             conf = box.conf[0].item()
             cards.append((config["names"][int(class_id)].upper(), conf))
-            print(config["names"][int(class_id)].upper(), conf)
         return cards
     def from_hand(self, card_images):
         hands = []
         for hand in card_images:
-            results =(self.get_hand(source=hand, device=self.device, show=self.debug))
-        # Visualize the results
+            results =(self.get_hand(source=hand, device=self.device, show=self.debug, conf=self.confidence_threshold))
+            # print(sorted_detections = sorted(results, key=lambda x: x['boxes'][1]))
+            print(results)
+            # Visualize the results
             for result in results:
                 boxes = result.boxes
                 hands.append(self.format_hand(boxes))
-                for box in boxes:
-                    # x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    class_id = int(box.cls[0])
-                    conf = box.conf[0].item()
-                    print(config["names"][int(class_id)].upper(), conf)
         return hands
 
