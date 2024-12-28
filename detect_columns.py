@@ -15,7 +15,7 @@ detector = Detector(
     brightness_threshold=settings["brightness_threshold"],
     epsilon_factor=settings["epsilon_factor"],
     min_area=settings["min_area"],
-    debug=settings["debug"],      
+    debug=settings["debug"],
 )
 cardDetector = Card(settings)
 

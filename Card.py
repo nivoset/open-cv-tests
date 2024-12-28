@@ -21,7 +21,7 @@ class Card:
         self.settings = settings
         self.device = settings["device"]
         self.confidence_threshold = settings["confidence_threshold"]
-        self.debug = settings["debug"]
+        self.debug = False
         self.get_hand = YOLO("playing-cards/playing-card-model/best.pt")
     def format_hand(self, hand):
         """
@@ -60,29 +60,29 @@ class Card:
             
             # Process and overlay results
             for result in results:
-                boxes = result.boxes  # Assuming `boxes` is in the YOLOv8 result format
+                cards = result.boxes  # Assuming `boxes` is in the YOLOv8 result format
                 
                 # Sort boxes based on their Y position
                 # boxes.sort(key=lambda box: int(box.xyxy[0][1]))
-                boxes_sorted = sorted(boxes, key=lambda box: int(box.xyxy[0][1]), reverse=True)
+                cards_sorted = sorted(cards, key=lambda box: int(box.xyxy[0][1]), reverse=True)
                 
                 # Deduplicate based on class_id
-                unique_boxes = {}
-                for box in boxes_sorted:
-                    class_id = int(box.cls[0])
-                    if class_id not in unique_boxes:
-                        unique_boxes[class_id] = box
+                unique_cards = {}
+                for box in cards_sorted:
+                    class_id = int(box.cls[0])  # Extract class ID as an integer
+                    # Check if class_id is not in unique_boxes or the new box has a higher confidence
+                    if class_id not in unique_cards or box.conf > unique_cards[class_id].conf:
+                        unique_cards[class_id] = box
 
                 # Convert back to a list
-                deduped_boxes = list(unique_boxes.values())
+                deduped_cards = list(unique_cards.values())
                 
-                
-                for box in deduped_boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])  # Extract bounding box coordinates
-                    class_id = int(box.cls[0])  # Extract class label
-                    # confidence = box.conf  # Extract confidence score
-                    
-                    if self.debug:
+                if self.debug:
+                    for box in deduped_cards:
+                        x1, y1, x2, y2 = map(int, box.xyxy[0])  # Extract bounding box coordinates
+                        class_id = int(box.cls[0])  # Extract class label
+                        # confidence = box.conf  # Extract confidence score
+                        
                         # Draw the bounding box and label on the image
                         cv2.rectangle(rotated, (x1, y1), (x2, y2), (255, 255, 0), 2)  # Green box
                         cv2.putText(
@@ -96,7 +96,7 @@ class Card:
                         )
                         extracted_images.append(rotated)
                 # Format the results for hand processing
-                hands.append(self.format_hand(boxes))
+                hands.append(self.format_hand(deduped_cards))
             
         if self.debug:
             # This code shows a display of the hands next to each other with plotted data

@@ -12,3 +12,9 @@ python test.py
 ```
 
 may be `python3` on the computer depending on how it was installed
+
+
+compile?
+```
+python -m py_compile -o card_detector.pyc server.py
+```
