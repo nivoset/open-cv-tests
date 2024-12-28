@@ -1,12 +1,12 @@
-area_threshold: 500
+# What to consider "white" of playing cards (used for splitting hands)
 brightness_threshold: 200
 epsilon_factor: 0.02
 min_area: 150
 # Sorting methods, need to list
 sort_method: left-to-right
 # Confidence needed to report a card (TODO)
-confidence_threshold: 0.25
+confidence_threshold: 0.55
 # Display/log more details
 debug: false
 # pytorch device, cpu, cuda, mps if mac
-device: cpu
+device: cuda

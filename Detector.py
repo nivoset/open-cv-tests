@@ -4,13 +4,7 @@ import cv2
 import numpy as np
 
 class Detector:
-    def __init__(self, area_threshold=500, brightness_threshold=200, epsilon_factor=0.02, min_area=150, sort_method="left-to-right", debug = False):
-        """
-        Initializes the detector with area and brightness thresholds.
-        - area_threshold: Minimum area to consider a contour as a card.
-        - brightness_threshold: Minimum average brightness to consider a contour.
-        """
-        self.area_threshold = area_threshold
+    def __init__(self, brightness_threshold=200, epsilon_factor=0.02, min_area=150, sort_method="left-to-right", debug = False):
         self.brightness_threshold = brightness_threshold
         self.epsilon_factor = epsilon_factor
         self.min_area = min_area
@@ -103,7 +97,7 @@ class Detector:
         - Returns: Dictionary of Card objects detected.
         """
         frame = self.filter_crosshairs(frame, self.brightness_threshold)
-        blur = cv2.GaussianBlur(frame, (15, 15), 3)
+        blur = cv2.GaussianBlur(frame.copy(), (15, 15), 3)
         gray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # Using Hough Line Transform to detect lines
@@ -114,13 +108,13 @@ class Detector:
         contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         filtered_contours = self.sort_contours([cnt for cnt in contours if cv2.contourArea(cnt) > self.min_area], self.sort_method)
         
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2GRAY)
         mask = np.zeros_like(gray)
         cv2.drawContours(thresholded, filtered_contours, -1, 255, thickness=cv2.FILLED)
             
 
         
-        blur = cv2.GaussianBlur(frame, (5,5), 0)
+        blur = cv2.GaussianBlur(frame.copy(), (5,5), 0)
         blur_hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV) 
 
         # create NumPy arrays from the boundaries

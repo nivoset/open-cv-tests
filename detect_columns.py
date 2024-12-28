@@ -6,12 +6,12 @@ import yaml
 # Load the image
 image_path = 'image001.png'
 
-settings = yaml.load(open('./settings.yaml'), Loader=yaml.FullLoader)
-
+# settings = yaml.load(open('./settings.yaml'), Loader=yaml.FullLoader)
+with open('./settings.yaml') as f:
+    settings = yaml.safe_load(f)
 
 detector = Detector(
     sort_method=settings["sort_method"],
-    area_threshold=settings["area_threshold"],
     brightness_threshold=settings["brightness_threshold"],
     epsilon_factor=settings["epsilon_factor"],
     min_area=settings["min_area"],
@@ -19,7 +19,7 @@ detector = Detector(
 )
 cardDetector = Card(settings)
 
-print(settings) 
+print(settings)
 def process_image_fn(image_path):
     # Load the image
     image = cv2.imread(image_path)
