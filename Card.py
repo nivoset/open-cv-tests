@@ -22,7 +22,7 @@ class Card:
         self.device = settings["device"]
         self.confidence_threshold = settings["confidence_threshold"]
         self.debug = False
-        self.get_hand = YOLO("playing-cards/playing-card-model/best.pt")
+        self.get_hand = YOLO("playing-cards/playing-card-model/best.pt", verbose=False)
     def format_hand(self, hand):
         """
         Format the hand data to match the Card class.
@@ -55,7 +55,13 @@ class Card:
         for hand in card_images:
             rotated = cv2.rotate(hand, cv2.ROTATE_180)
             # Get YOLOv8 results
-            results =(self.get_hand(source=rotated, device=self.device, show=self.debug, conf=self.confidence_threshold))
+            results =(self.get_hand(
+                source=rotated,
+                device=self.device,
+                show=self.debug,
+                conf=self.confidence_threshold,
+                verbose=False
+            ))
             
             
             # Process and overlay results

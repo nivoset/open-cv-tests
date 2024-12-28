@@ -1,11 +1,13 @@
-from flask import Flask, jsonify, Response;
+from flask import Flask, jsonify, Response
 from Card import Card
 from Detector import Detector
 from settings import settings
 import json
 import cv2
+import threading
+import time
 
-
+# Initialize detector and card detector
 detector = Detector(
     sort_method=settings["sort_method"],
     brightness_threshold=settings["brightness_threshold"],
@@ -18,10 +20,40 @@ cardDetector = Card(settings)
 camera = cv2.VideoCapture(settings['input_device'])
 
 if not camera.isOpened():
-  print("error accessing camera")
-  exit()
+    print("error accessing camera")
+    exit()
 
 app = Flask(__name__)
+
+# Cache variable and lock for thread safety
+cached_data = None
+cache_lock = threading.Lock()
+
+# Time interval to update the cache (in seconds)
+CACHE_UPDATE_INTERVAL = 10
+
+# Background thread function to update cache
+def update_cache():
+    global cached_data
+    while True:
+        print("updating image")
+        # Process and update cached data
+        image_path = 'image001.png'
+        image = cv2.imread(image_path)
+        
+        hands = detector.cards(image)
+        cards = cardDetector.from_hand(hands)
+        
+        # Acquire lock to safely update the cache
+        with cache_lock:
+            cached_data = cards
+
+        # Wait for the next update
+        time.sleep(CACHE_UPDATE_INTERVAL)
+
+# Start the cache updating thread
+cache_thread = threading.Thread(target=update_cache, daemon=True)
+cache_thread.start()
 
 # Define a simple route
 @app.route('/')
@@ -31,15 +63,11 @@ def home():
 # Define an API route
 @app.route('/api/data', methods=['GET'])
 def get_data():
-    image_path = 'image001.png'
-    image = cv2.imread(image_path)
-  
-    
-    hands = detector.cards(image)
-    
-    cards = cardDetector.from_hand(hands)
-    
-    return Response(json.dumps(cards), content_type="application/json")
+    # Return the cached data
+    with cache_lock:  # Ensure thread safety when accessing cached_data
+        if cached_data is None:
+            return Response(json.dumps({"error": "Cache not initialized"}), content_type="application/json")
+        return Response(json.dumps(cached_data), content_type="application/json", mimetype="application/json")
 
 # Start the server
 if __name__ == '__main__':
