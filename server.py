@@ -17,7 +17,7 @@ detector = Detector(
 )
 cardDetector = Card(settings)
 
-camera = cv2.VideoCapture(settings['input_device'])
+camera = cv2.VideoCapture(0)
 
 if not camera.isOpened():
     print("error accessing camera")
@@ -30,24 +30,26 @@ cached_data = None
 cache_lock = threading.Lock()
 
 # Time interval to update the cache (in seconds)
-CACHE_UPDATE_INTERVAL = 10
+CACHE_UPDATE_INTERVAL = 1
 
 # Background thread function to update cache
 def update_cache():
     global cached_data
     while True:
-        print("updating image")
-        # Process and update cached data
-        image_path = 'image001.png'
-        image = cv2.imread(image_path)
+        ret, image = camera.read()
+        if not ret:
+          print("no frame")
+          continue        
         
         hands = detector.cards(image)
         cards = cardDetector.from_hand(hands)
+
+        # cv2.imshow("Captured Image", image)
+        print(len(hands), len(cards))
         
         # Acquire lock to safely update the cache
         with cache_lock:
             cached_data = cards
-
         # Wait for the next update
         time.sleep(CACHE_UPDATE_INTERVAL)
 
@@ -72,3 +74,5 @@ def get_data():
 # Start the server
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
+    
+camera.release()

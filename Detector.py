@@ -76,18 +76,22 @@ class Detector:
         boundingBoxes = [cv2.boundingRect(c) for c in contours]
         
         # Sort the bounding boxes, depending on the method
-        if method == "left-to-right":
-            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
-                                                key=lambda b: b[1][0]))
-        elif method == "right-to-left":
-            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
-                                                key=lambda b: b[1][0], reverse=True))
-        elif method == "top-to-bottom":
-            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
-                                                key=lambda b: b[1][1]))
-        elif method == "bottom-to-top":
-            contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
-                                                key=lambda b: b[1][1], reverse=True))
+        try:
+            if method == "left-to-right":
+                contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                    key=lambda b: b[1][0]))
+            elif method == "right-to-left":
+                contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                    key=lambda b: b[1][0], reverse=True))
+            elif method == "top-to-bottom":
+                contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                    key=lambda b: b[1][1]))
+            elif method == "bottom-to-top":
+                contours, boundingBoxes = zip(*sorted(zip(contours, boundingBoxes),
+                                                    key=lambda b: b[1][1], reverse=True))
+        except:
+            print("error sorting cards")
+        
 
         return contours
     def cards(self, frame):
