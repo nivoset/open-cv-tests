@@ -69,7 +69,32 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
         while(True):
 
             ret, frame = cap.read()
+            
+            gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+            blur = cv2.GaussianBlur(gray,(5,5),0)
+            retval, thresh = cv2.threshold(blur,100,255,cv2.THRESH_BINARY)
+            cnts,hier = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+            # cv2.drawContours(frame,cnts, -1, (0,133,0), 2)
+            brightness_threshold = 200
+            
+            for cnt in cnts:
+                epsilon = 0.01*cv2.arcLength(cnt,True)
+                approx = cv2.approxPolyDP(cnt,epsilon,True)
+                
+                mask = np.zeros(gray.shape, dtype=np.uint8)
+                cv2.drawContours(mask, [approx], 0, 255, -1)
+                cv2.drawContours(frame,[approx], -1, (0,125,0), 15)
+                mean_brightness = cv2.mean(gray, mask=mask)[0]
+                
+                if mean_brightness > brightness_threshold:
+                    cv2.drawContours(frame,[approx], -1, 255, 15)
+            # if len(cnts) > 0:
+            #     largest_contour = max(cnts, key=cv2.contourArea)
+            #     print(largest_contour)
+            #     cv2.drawContours(frame,[largest_contour], -1, (0,255,0), 15)
+            
             cv2.imshow("Card",frame)
+            
             key = cv2.waitKey(1) & 0xFF
             if key == ord("p"):
                 image = frame
@@ -81,11 +106,9 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
     retval, thresh = cv2.threshold(blur,100,255,cv2.THRESH_BINARY)
 
     # Find contours and sort them by size
-    dummy,cnts,hier = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    cnts,hier = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     cnts = sorted(cnts, key=cv2.contourArea,reverse=True)
-
     # Assume largest contour is the card. If there are no contours, print an error
-    flag = 0
     image2 = image.copy()
 
     if len(cnts) == 0:
@@ -114,7 +137,7 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
     # Isolate suit or rank
     if i <= 13: # Isolate rank
         rank = corner_thresh[20:185, 0:128] # Grabs portion of image that shows rank
-        dummy, rank_cnts, hier = cv2.findContours(rank, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        rank_cnts, hier = cv2.findContours(rank, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         rank_cnts = sorted(rank_cnts, key=cv2.contourArea,reverse=True)
         x,y,w,h = cv2.boundingRect(rank_cnts[0])
         rank_roi = rank[y:y+h, x:x+w]
@@ -123,7 +146,7 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
 
     if i > 13: # Isolate suit
         suit = corner_thresh[186:336, 0:128] # Grabs portion of image that shows suit
-        dummy, suit_cnts, hier = cv2.findContours(suit, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        suit_cnts, hier = cv2.findContours(suit, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         suit_cnts = sorted(suit_cnts, key=cv2.contourArea,reverse=True)
         x,y,w,h = cv2.boundingRect(suit_cnts[0])
         suit_roi = suit[y:y+h, x:x+w]
