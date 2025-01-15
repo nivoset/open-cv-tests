@@ -8,7 +8,7 @@ with open('playing-cards/data.yaml') as f:
     config = yaml.safe_load(f)
 
 
-class Card:
+class Hand:
     def __init__(self, settings):
         """
         Initialize a Card instance with detected data.

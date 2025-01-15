@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, Response
-from Card import Card
+from Hand import Hand
 from Detector import Detector
 from settings import settings
 import json
@@ -15,7 +15,7 @@ detector = Detector(
     min_area=settings["min_area"],
     debug=settings["debug"],
 )
-cardDetector = Card(settings)
+cardDetector = Hand(settings)
 
 camera = cv2.VideoCapture(0)
 

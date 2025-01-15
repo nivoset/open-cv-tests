@@ -1,4 +1,4 @@
-from Card import Card
+from Hand import Hand
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np

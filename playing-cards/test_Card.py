@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from Card import Card
+from Hand import Hand
 
 class TestCard(unittest.TestCase):
     @patch('Card.YOLO')  # Mock the YOLO class
@@ -20,7 +20,7 @@ class TestCard(unittest.TestCase):
         }
 
         # Create an instance of Card
-        card = Card(settings)
+        card = Hand(settings)
         
         # Assertions to verify correct initialization
         self.assertEqual(card.device, 'cpu')
@@ -33,7 +33,7 @@ class TestCard(unittest.TestCase):
         # Mock configuration setup
         mock_yolo.return_value = None  # We don't need the actual YOLO object for this test
         config = {'names': ['Ace', 'King']}
-        card = Card({'device': 'cpu', 'confidence_threshold': 0.5, 'debug': False})
+        card = Hand({'device': 'cpu', 'confidence_threshold': 0.5, 'debug': False})
         card.settings = {'names': ['Ace', 'King']}
 
         # Sample hand data
@@ -54,7 +54,7 @@ class TestCard(unittest.TestCase):
         mock_yolo.return_value = mock_yolo_instance
         mock_yolo_instance.return_value = MagicMock(boxes=['box1', 'box2'])
 
-        card = Card({'device': 'cpu', 'confidence_threshold': 0.5, 'debug': False})
+        card = Hand({'device': 'cpu', 'confidence_threshold': 0.5, 'debug': False})
         card.format_hand = MagicMock(return_value='formatted_hand')
 
         # Test data
