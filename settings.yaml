@@ -9,6 +9,6 @@ confidence_threshold: 0.55
 # Display/log more details
 debug: false
 # pytorch device, cpu, cuda, mps if mac
-device: cuda
+device: cpu
 #
 input_device: 0
