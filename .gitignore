@@ -12,3 +12,5 @@ training-data/README.roboflow.txt
 **/*.jpg
 training-data/valid/labels/*.txt
 training-data/valid/labels.cache
+**/.DS_Store
+.DS_Store
