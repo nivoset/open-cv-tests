@@ -52,7 +52,7 @@ def main():
   # time.wait(600000)
   # print('go time')
   #load the model
-  model = YOLO("training-data/playing-card-model10/weights/best.pt")
+  model = YOLO("training-data/playing-card-model14/weights/best.pt")
   
   project = "./training-data"
   experiment = "playing-card-model"
