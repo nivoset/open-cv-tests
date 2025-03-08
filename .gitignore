@@ -5,3 +5,4 @@ EXAMPLE/
 playing-cards/train
 playing-cards/test
 playing-cards/valid
+.mypy_cache/

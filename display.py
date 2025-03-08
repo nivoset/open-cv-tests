@@ -1,0 +1,1 @@
+# this file should import from camera, detector and hand to display the video of each hand as well as the marked cards using the best training data available
