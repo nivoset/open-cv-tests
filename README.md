@@ -1,20 +1,18 @@
 to try out
 
+
+
 install opencv and such
 ```
 pip install -r requirements.txt
 ```
 
 
-run program
+run test program
 ```
-python test.py
+python display.py
 ```
 
 may be `python3` on the computer depending on how it was installed
 
 
-compile?
-```
-python -m py_compile -o card_detector.pyc server.py
-```
