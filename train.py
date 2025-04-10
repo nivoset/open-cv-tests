@@ -1,6 +1,31 @@
 from ultralytics import YOLO
 import yaml
 
+import pathlib
+
+# Find the best weights file
+best_weights_file = None
+best_epoch = 0
+
+for folder in pathlib.Path("training-data").glob("playing-card-model??"):
+    folder_name_parts = folder.name.split("model")
+    epoch = int(folder_name_parts[-1])
+    weights_files = list(folder.rglob("*.pt"))
+    if weights_files:
+        if epoch > best_epoch:
+            best_epoch = epoch
+            best_weights_file = weights_files[0]
+
+# Load the model with the best weights
+if best_weights_file is not None:
+    print("using ", best_weights_file)
+    model = YOLO(best_weights_file)
+else:
+    print("No weights file found")
+
+
+# Load the model with the best weights
+
 data_yaml_file = "/Users/benjaminkoop/Desktop/code/python/OpenCV-Playing-Card-Detector/training-data/data.yaml"
 
 with open(data_yaml_file, 'r') as file:
@@ -8,7 +33,7 @@ with open(data_yaml_file, 'r') as file:
  
 def main():
   #load the model
-  model = YOLO("training-data/playing-card-model18/weights/best.pt")
+  # model = YOLO("training-data/playing-card-model22/weights/best.pt")
   
   project = "./training-data"
   experiment = "playing-card-model"
