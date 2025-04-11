@@ -3,6 +3,8 @@ import cv2
 import matplotlib.pyplot as plt
 import yaml
 from scipy.spatial import distance
+from collections import deque, Counter
+import numpy as np
 
 # Load the configuration
 with open('playing-cards/data.yaml') as f:
@@ -21,6 +23,7 @@ class Hand:
         self.debug = settings.get("debug", False)
         self.get_hand = YOLO("playing-cards/playing-card-model/best.pt", verbose=False)
         self.tracked_cards = {}  # Track cards across frames
+        self.card_history = {}  # history buffer per card_id
 
     def format_hand(self, hand):
         """
@@ -67,48 +70,64 @@ class Hand:
         return [cards[i] for i in ordered_indices]
 
     def update_tracked_cards(self, detected_cards):
-        """
-        Update tracked cards based on new detections.
-        """
+        max_history = 5
+        stability_threshold = 3
+        position_threshold = 50
+
         updated_tracked = {}
 
         for detected in detected_cards:
-            class_id = int(detected.cls[0])
-            confidence = detected.conf[0].item()
-            x1, y1, x2, y2 = map(int, detected.xyxy[0])
-            center = ((x1 + x2) // 2, (y1 + y2) // 2)
+            # class_id = int(detected.cls[0])
+            # confidence = detected.conf[0].item()
+            # x1, y1, x2, y2 = map(int, detected.xyxy[0])
+            class_id = detected["name"]
+            confidence = detected["confidence"]
+            center = detected["center"]
 
-            # Match detected card to tracked card using distance
-            matched = False
+            # center = ((x1 + x2) // 2, (y1 + y2) // 2)
+
+            matched_id = None
+
+            # Check proximity for existing card match
             for card_id, card_data in self.tracked_cards.items():
-                if card_data["class_id"] == class_id:
-                    dist = distance.euclidean(card_data["center"], center)
-                    if dist < 50:  # Positional threshold
-                        matched = True
-                        if confidence > card_data["confidence"]:
-                            updated_tracked[card_id] = {
-                                "class_id": class_id,
-                                "confidence": confidence,
-                                "center": center,
-                                "stability": card_data["stability"] + 1
-                            }
-                        else:
-                            updated_tracked[card_id] = card_data
-                        break
+                dist = distance.euclidean(card_data["center"], center)
+                if dist < position_threshold:
+                    matched_id = card_id
+                    break
 
-            if not matched:
-                # Add new card if no match
-                card_id = len(updated_tracked) + 1
-                updated_tracked[card_id] = {
+            if matched_id:
+                # Update existing card history
+                if matched_id not in self.card_history:
+                    self.card_history[matched_id] = deque(maxlen=max_history)
+                self.card_history[matched_id].append(class_id)
+
+                # Debounce based on majority vote
+                most_common = Counter(self.card_history[matched_id]).most_common(1)[0]
+                if most_common[1] >= stability_threshold:
+                    updated_tracked[matched_id] = {
+                        "class_id": most_common[0],
+                        "confidence": confidence,
+                        "center": center,
+                        "stability": most_common[1]
+                    }
+            else:
+                # New card detected
+                new_id = len(self.tracked_cards) + 1
+                self.card_history[new_id] = deque([class_id], maxlen=max_history)
+                updated_tracked[new_id] = {
                     "class_id": class_id,
                     "confidence": confidence,
                     "center": center,
                     "stability": 1
                 }
 
-        # Filter out unstable cards
-        self.tracked_cards = {k: v for k, v in updated_tracked.items() if v["stability"] > 2}
-
+        # Keep only stable cards
+        self.tracked_cards = {
+            cid: data for cid, data in updated_tracked.items()
+            if data["stability"] >= stability_threshold
+        }
+        
+        
     def from_hand(self, card_images):
         """
         Process hand images to extract card information.
