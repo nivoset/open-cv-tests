@@ -16,5 +16,6 @@ settings = {
     "debug": raw_settings.get("debug",  False),
     "input_device": raw_settings.get("input_device", 0),
     "confidence_threshold": raw_settings.get("confidence_threshold", 50),
-    "device": raw_settings.get("device", "cpu")
+    "device": raw_settings.get("device", "cpu"),
+    "port": raw_settings.get("port", 8000)
 }

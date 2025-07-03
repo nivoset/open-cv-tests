@@ -102,13 +102,13 @@ def get_data():
     with cache_lock:  # Ensure thread safety
         if cached_data is None:
             return jsonify({"error": "Cache not initialized"}), 503  # HTTP 503 Service Unavailable
-        return jsonify(cached_data)
+        return jsonify(cached_data), 200
 
 # Start the server
 if __name__ == '__main__':
     try:
-        logging.info("[INFO] Starting Flask server on port 8000...")
-        app.run(host='0.0.0.0', port=8000)
+        logging.info(f"[INFO] Starting Flask server on port {settings['port']}...")
+        app.run(host='0.0.0.0', port=settings["port"])
     except KeyboardInterrupt:
         logging.info("[INFO] Server shutting down.")
     finally:
